@@ -1,0 +1,8 @@
+[package]
+authors = ["Zack Smith <zack.smith@motorolasolutions.com>"]
+name = "cave-story"
+version = "0.1.0"
+
+[dependencies]
+sdl2 = "0.30.0"
+time = "0.1.37"
