@@ -12,10 +12,11 @@ pub struct Graphics {
 
 impl Graphics {
     pub fn new(video_subsystem: &VideoSubsystem) -> Result<Graphics, &str> {
-        match video_subsystem.window("Cave Story: Rust", K_SCREEN_WIDTH, K_SCREEN_HEIGHT)
-            .position_centered()
-            .opengl()
-            .build() {
+        match video_subsystem
+                  .window("Cave Story: Rust", K_SCREEN_WIDTH, K_SCREEN_HEIGHT)
+                  .position_centered()
+                  .opengl()
+                  .build() {
             Ok(window) => {
                 match window.into_canvas().software().build() {
                     Ok(mut canvas) => {
@@ -43,7 +44,8 @@ impl Graphics {
                         flip_horizontal: bool,
                         flip_vertical: bool) {
         let texture_creator = self.screen.texture_creator();
-        let texture = texture_creator.create_texture_from_surface(surface)
+        let texture = texture_creator
+            .create_texture_from_surface(surface)
             .expect("Failed to create surface from texture");
         self.screen
             .copy_ex(&texture,

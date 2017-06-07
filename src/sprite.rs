@@ -61,7 +61,7 @@ impl<'a> AnimatedSprite<'a> {
             frame_time: Duration::milliseconds((1000 / fps) as i64),
             num_frames: num_frames,
             current_frame: 0,
-            elapsed_time: Duration::zero()
+            elapsed_time: Duration::zero(),
         }
     }
 }
@@ -74,9 +74,13 @@ impl<'a> Sprite for AnimatedSprite<'a> {
             self.elapsed_time = Duration::zero();
             let current_x = self.static_sprite.source_rect.x();
             if self.current_frame < self.num_frames {
-                self.static_sprite.source_rect.set_x(current_x + TILE_SIZE as i32);
+                self.static_sprite
+                    .source_rect
+                    .set_x(current_x + TILE_SIZE as i32);
             } else {
-                self.static_sprite.source_rect.set_x(current_x - TILE_SIZE as i32 * (self.num_frames as i32 - 1));
+                self.static_sprite
+                    .source_rect
+                    .set_x(current_x - TILE_SIZE as i32 * (self.num_frames as i32 - 1));
                 self.current_frame = 0;
             }
         }
