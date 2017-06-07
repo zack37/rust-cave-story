@@ -1,5 +1,5 @@
 use graphics::Graphics;
-use sprite::Sprite;
+use sprite::{Sprite, AnimatedSprite};
 use sdl2;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -7,9 +7,10 @@ use std::thread::sleep;
 use time::{Duration, PreciseTime};
 
 const K_FPS: i64 = 60;
+pub const TILE_SIZE: u32 = 32;
 
 pub struct Game {
-    sprite: Option<Sprite<'static>>
+    sprite: Option<AnimatedSprite<'static>>,
 }
 
 impl Game {
@@ -17,17 +18,19 @@ impl Game {
         Game { sprite: None }
     }
 
-    pub fn event_loop(&mut self) {
+    pub fn play(&mut self) {
         // Initialize
         let sdl_context = sdl2::init().expect("Failed to create SDL Context");
         let video_subsystem = sdl_context.video().expect("Failed to create video subsystem");
         let mut event_pump = sdl_context.event_pump().expect("Failed to create event pump");
-        let mut graphics = Graphics::new(&video_subsystem).expect("Failed to create graphics object");
-
-        self.sprite = Some(Sprite::new("content/MyChar.bmp", 0, 0, 32, 32));
+        let mut graphics = Graphics::new(&video_subsystem)
+            .expect("Failed to create graphics object");
 
         // Prepare
         sdl_context.mouse().show_cursor(false);
+        let mut last_update_time = PreciseTime::now();
+        self.sprite =
+            Some(AnimatedSprite::new("content/MyChar.bmp", 0, 0, TILE_SIZE, TILE_SIZE, 15, 3));
 
         // while running ~ 60Hz
         //   Handle input, timer callbacks.
@@ -45,20 +48,30 @@ impl Game {
                 }
             }
 
-            self.update();
+            let current_time = PreciseTime::now();
+            self.update(last_update_time.to(current_time));
+            last_update_time = current_time;
+
             self.draw(&mut graphics);
 
-            let elapsed_ms = start_ticks.to(PreciseTime::now());
-            let fps_duration = Duration::milliseconds(1000 / K_FPS);
-            let sleep_duration = fps_duration - elapsed_ms;
-
-            if let Ok(sleep_duration) = sleep_duration.to_std() {
-                sleep(sleep_duration);
-            }
+            // grab new PreciseTime to account for update and draw time
+            self.frame_limit(start_ticks.to(PreciseTime::now()));
         }
     }
 
-    fn update(&self) {}
+    fn frame_limit(&self, elapsed_time: Duration) {
+        let sleep_duration = Duration::milliseconds(1000 / K_FPS) - elapsed_time;
+
+        if let Ok(sleep_duration) = sleep_duration.to_std() {
+            sleep(sleep_duration);
+        }
+    }
+
+    fn update(&mut self, elapsed_time: Duration) {
+        if let Some(ref mut sprite) = self.sprite {
+            sprite.update(elapsed_time);
+        }
+    }
 
     fn draw(&self, graphics: &mut Graphics) {
         if let Some(ref sprite) = self.sprite {

@@ -30,13 +30,30 @@ impl Graphics {
         }
     }
 
-    pub fn blit_surface(&mut self, surface: &Surface, source_rect: Rect, dest_rect: Rect, angle: f64, center: Option<Point>, flip_horizontal: bool, flip_vertical: bool) {
+    pub fn blit_with_defaults(&mut self, surface: &Surface, source_rect: Rect, dest_rect: Rect) {
+        self.blit_surface(surface, source_rect, dest_rect, 0.0, None, false, false);
+    }
+
+    pub fn blit_surface(&mut self,
+                        surface: &Surface,
+                        source_rect: Rect,
+                        dest_rect: Rect,
+                        angle: f64,
+                        center: Option<Point>,
+                        flip_horizontal: bool,
+                        flip_vertical: bool) {
         let texture_creator = self.screen.texture_creator();
-        let texture = texture_creator.create_texture_from_surface(surface).expect("Failed to create surface from texture");
-        self.screen.clear();
-        self.screen.copy_ex(&texture, Some(source_rect), Some(dest_rect), angle, center, flip_horizontal, flip_vertical).expect("Failed to copy texture");
+        let texture = texture_creator.create_texture_from_surface(surface)
+            .expect("Failed to create surface from texture");
+        self.screen
+            .copy_ex(&texture,
+                     Some(source_rect),
+                     Some(dest_rect),
+                     angle,
+                     center,
+                     flip_horizontal,
+                     flip_vertical)
+            .expect("Failed to copy texture");
         self.screen.present();
-        // texture_creator.create_texture_from_surface()
-        // self.screen.surface().blit(source_rectangle, destination, destination_rectangle);
     }
 }

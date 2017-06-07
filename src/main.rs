@@ -6,5 +6,5 @@ mod graphics;
 mod sprite;
 
 fn main() {
-    game::Game::new().event_loop();
+    game::Game::new().play();
 }
