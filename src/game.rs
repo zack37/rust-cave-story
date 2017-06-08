@@ -11,12 +11,12 @@ const K_FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
 
 pub struct Game {
-    player: Option<Player<'static>>,
+    player: Player<'static>
 }
 
 impl Game {
     pub fn new() -> Game {
-        Game { player: None }
+        Game { player: Player::new(320, 240) }
     }
 
     pub fn play(&mut self) {
@@ -35,8 +35,6 @@ impl Game {
         // Prepare
         sdl_context.mouse().show_cursor(false);
         let mut last_update_time = PreciseTime::now();
-        self.player =
-            Some(Player::new(320, 240));
 
         // while running ~ 60Hz
         //   Handle input, timer callbacks.
@@ -45,19 +43,29 @@ impl Game {
         'running: loop {
             //     // This loop lasts 1/60th os a second
             //     //                 1000/60ths of a ms
-            input.beginNewFrame();
+            input.begin_new_frame();
             let start_ticks = PreciseTime::now();
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running, // immediately quit
-                    Event::KeyUp { keycode: Some(key), .. } => input.keyUpEvent(key),
-                    Event::KeyDown { keycode: Some(key), .. } => input.keyDownEvent(key),
+                    Event::KeyUp { keycode: Some(key), .. } => input.key_up_event(key),
+                    Event::KeyDown { keycode: Some(key), .. } => input.key_down_event(key),
                     _ => {}
                 }
             }
 
-            if input.wasKeyPressed(&Keycode::Escape) {
+            if input.was_key_pressed(&Keycode::Escape) {
                 break 'running;
+            }
+
+            if input.is_key_held(&Keycode::Left) && input.is_key_held(&Keycode::Right) {
+                self.player.stop_moving();
+            } else if input.is_key_held(&Keycode::Left) {
+                self.player.start_moving_left();
+            } else if input.is_key_held(&Keycode::Right) {
+                self.player.start_moving_right();
+            } else {
+                self.player.stop_moving();
             }
 
             let current_time = PreciseTime::now();
@@ -80,14 +88,12 @@ impl Game {
     }
 
     fn update(&mut self, elapsed_time: Duration) {
-        if let Some(ref mut player) = self.player {
-            player.update(elapsed_time);
-        }
+        self.player.update(elapsed_time);
     }
 
     fn draw(&self, graphics: &mut Graphics) {
-        if let Some(ref player) = self.player {
-            player.draw(graphics);
-        }
+        graphics.clear();
+        self.player.draw(graphics);
+        graphics.flip();
     }
 }

@@ -7,7 +7,7 @@ const K_SCREEN_WIDTH: u32 = 640;
 const K_SCREEN_HEIGHT: u32 = 480;
 
 pub struct Graphics {
-    screen: WindowCanvas,
+    screen: WindowCanvas
 }
 
 impl Graphics {
@@ -56,6 +56,13 @@ impl Graphics {
                      flip_horizontal,
                      flip_vertical)
             .expect("Failed to copy texture");
+    }
+
+    pub fn clear(&mut self) {
+        self.screen.clear();
+    }
+
+    pub fn flip(&mut self) {
         self.screen.present();
     }
 }
