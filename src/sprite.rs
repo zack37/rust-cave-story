@@ -11,12 +11,12 @@ pub trait Sprite {
     fn draw(&self, graphics: &mut Graphics, x: i32, y: i32);
 }
 
-pub struct StaticSprite<'a> {
-    sprite_sheet: Surface<'a>,
+pub struct StaticSprite<'sprite_sheet> {
+    sprite_sheet: Surface<'sprite_sheet>,
     source_rect: Rect,
 }
 
-impl<'a> StaticSprite<'a> {
+impl<'sprite_sheet> StaticSprite<'sprite_sheet> {
     pub fn new(file_path: &str,
                source_x: i32,
                source_y: i32,
@@ -38,15 +38,15 @@ impl<'a> Sprite for StaticSprite<'a> {
     }
 }
 
-pub struct AnimatedSprite<'a> {
-    static_sprite: StaticSprite<'a>,
+pub struct AnimatedSprite<'sprite_sheet> {
+    static_sprite: StaticSprite<'sprite_sheet>,
     frame_time: Duration,
     num_frames: u32,
     current_frame: u32,
-    elapsed_time: Duration, // Elapsed since last frame change
+    since_last_frame_change: Duration, // Elapsed since last frame change
 }
 
-impl<'a> AnimatedSprite<'a> {
+impl<'sprite_sheet> AnimatedSprite<'sprite_sheet> {
     pub fn new(file_path: &str,
                source_x: i32,
                source_y: i32,
@@ -61,17 +61,17 @@ impl<'a> AnimatedSprite<'a> {
             frame_time: Duration::milliseconds((1000 / fps) as i64),
             num_frames: num_frames,
             current_frame: 0,
-            elapsed_time: Duration::zero(),
+            since_last_frame_change: Duration::zero(),
         }
     }
 }
 
 impl<'a> Sprite for AnimatedSprite<'a> {
     fn update(&mut self, elapsed_time: Duration) {
-        self.elapsed_time = self.elapsed_time + elapsed_time;
-        if self.elapsed_time > self.frame_time {
+        self.since_last_frame_change = self.since_last_frame_change + elapsed_time;
+        if self.since_last_frame_change > self.frame_time {
             self.current_frame += 1;
-            self.elapsed_time = Duration::zero();
+            self.since_last_frame_change = Duration::zero();
             let current_x = self.static_sprite.source_rect.x();
             if self.current_frame < self.num_frames {
                 self.static_sprite

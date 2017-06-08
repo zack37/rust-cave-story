@@ -1,4 +1,4 @@
-use graphics::Graphics;
+use graphics::{Graphics, SCREEN_HEIGHT, SCREEN_WIDTH};
 use input::Input;
 use player::Player;
 use sdl2;
@@ -10,13 +10,14 @@ use time::{Duration, PreciseTime};
 const K_FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
 
-pub struct Game {
-    player: Player<'static>
+pub struct Game<'player> {
+    player: Player<'player>,
 }
 
-impl Game {
-    pub fn new() -> Game {
-        Game { player: Player::new(320, 240) }
+impl<'player> Game<'player> {
+    pub fn new() -> Game<'player> {
+        let (width, height) = (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+        Game { player: Player::new(width / 2, height / 2) }
     }
 
     pub fn play(&mut self) {
@@ -54,15 +55,15 @@ impl Game {
                 }
             }
 
-            if input.was_key_pressed(&Keycode::Escape) {
+            if input.was_key_pressed(Keycode::Escape) {
                 break 'running;
             }
 
-            if input.is_key_held(&Keycode::Left) && input.is_key_held(&Keycode::Right) {
+            if input.is_key_held(Keycode::Left) && input.is_key_held(Keycode::Right) {
                 self.player.stop_moving();
-            } else if input.is_key_held(&Keycode::Left) {
+            } else if input.is_key_held(Keycode::Left) {
                 self.player.start_moving_left();
-            } else if input.is_key_held(&Keycode::Right) {
+            } else if input.is_key_held(Keycode::Right) {
                 self.player.start_moving_right();
             } else {
                 self.player.stop_moving();

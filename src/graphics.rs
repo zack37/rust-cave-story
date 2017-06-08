@@ -3,17 +3,17 @@ use sdl2::render::WindowCanvas;
 use sdl2::rect::{Point, Rect};
 use sdl2::surface::Surface;
 
-const K_SCREEN_WIDTH: u32 = 640;
-const K_SCREEN_HEIGHT: u32 = 480;
+pub const SCREEN_WIDTH: u32 = 640;
+pub const SCREEN_HEIGHT: u32 = 480;
 
 pub struct Graphics {
-    screen: WindowCanvas
+    screen: WindowCanvas,
 }
 
 impl Graphics {
     pub fn new(video_subsystem: &VideoSubsystem) -> Result<Graphics, &str> {
         match video_subsystem
-                  .window("Cave Story: Rust", K_SCREEN_WIDTH, K_SCREEN_HEIGHT)
+                  .window("Cave Story: Rust", SCREEN_WIDTH, SCREEN_HEIGHT)
                   .position_centered()
                   .opengl()
                   .build() {

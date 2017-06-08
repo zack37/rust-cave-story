@@ -31,15 +31,15 @@ impl Input {
         self.held_keys.insert(key, false);
     }
 
-    pub fn was_key_pressed(&mut self, key: &Keycode) -> bool {
-        *self.pressed_keys.get(key).unwrap_or(&false)
+    pub fn was_key_pressed(&mut self, key: Keycode) -> bool {
+        *self.pressed_keys.get(&key).unwrap_or(&false)
     }
 
-    pub fn was_key_released(&mut self, key: &Keycode) -> bool {
-        *self.released_keys.get(key).unwrap_or(&false)
+    pub fn was_key_released(&mut self, key: Keycode) -> bool {
+        *self.released_keys.get(&key).unwrap_or(&false)
     }
 
-    pub fn is_key_held(&mut self, key: &Keycode) -> bool {
-        *self.held_keys.get(key).unwrap_or(&false)
+    pub fn is_key_held(&mut self, key: Keycode) -> bool {
+        *self.held_keys.get(&key).unwrap_or(&false)
     }
 }
