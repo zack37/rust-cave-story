@@ -10,28 +10,27 @@ use time::{Duration, PreciseTime};
 const K_FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
 
-pub struct Game<'player> {
-    player: Player<'player>,
-}
+pub struct Game {}
 
-impl<'player> Game<'player> {
-    pub fn new() -> Game<'player> {
-        let (width, height) = (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
-        Game { player: Player::new(width / 2, height / 2) }
+impl Game {
+    pub fn new() -> Game {
+        Game {}
     }
 
     pub fn play(&mut self) {
         // Initialize
         let sdl_context = sdl2::init().expect("Failed to create SDL Context");
-        let video_subsystem = sdl_context
-            .video()
-            .expect("Failed to create video subsystem");
         let mut event_pump = sdl_context
             .event_pump()
             .expect("Failed to create event pump");
-        let mut graphics = Graphics::new(&video_subsystem)
-            .expect("Failed to create graphics object");
+        let video_subsystem = sdl_context
+            .video()
+            .expect("Failed to create video subsystem");
+        let mut graphics: &mut Graphics = &mut Graphics::new(video_subsystem)
+                                                   .expect("Failed to create graphics");
         let mut input = Input::new();
+        let (width, height) = (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+        let mut player = Player::new(graphics, width / 2, height / 2);
 
         // Prepare
         sdl_context.mouse().show_cursor(false);
@@ -59,21 +58,45 @@ impl<'player> Game<'player> {
                 break 'running;
             }
 
+            // Player horizontal movement
             if input.is_key_held(Keycode::Left) && input.is_key_held(Keycode::Right) {
-                self.player.stop_moving();
+                player.stop_moving();
             } else if input.is_key_held(Keycode::Left) {
-                self.player.start_moving_left();
+                player.start_moving_left();
             } else if input.is_key_held(Keycode::Right) {
-                self.player.start_moving_right();
+                player.start_moving_right();
             } else {
-                self.player.stop_moving();
+                player.stop_moving();
             }
 
-            let current_time = PreciseTime::now();
-            self.update(last_update_time.to(current_time));
-            last_update_time = current_time;
+            if input.is_key_held(Keycode::Up) && input.is_key_held(Keycode::Down) {
+                player.look_horizontal();
+            } else if input.is_key_held(Keycode::Up) {
+                player.look_up();
+            } else if input.is_key_held(Keycode::Down) {
+                player.look_down();
+            } else {
+                player.look_horizontal();
+            }
 
-            self.draw(&mut graphics);
+            // Player jump
+            if input.was_key_pressed(Keycode::Z) {
+                player.start_jump();
+            } else if input.was_key_released(Keycode::Z) {
+                player.stop_jump();
+            }
+
+            // UPDATE
+            let current_time = PreciseTime::now();
+            player.update(last_update_time.to(current_time));
+            last_update_time = current_time;
+            //
+
+            // DRAW
+            graphics.clear();
+            player.draw(&mut graphics);
+            graphics.flip();
+            //
 
             // grab new PreciseTime to account for update and draw time
             self.frame_limit(start_ticks.to(PreciseTime::now()));
@@ -86,15 +109,5 @@ impl<'player> Game<'player> {
         if let Ok(sleep_duration) = sleep_duration.to_std() {
             sleep(sleep_duration);
         }
-    }
-
-    fn update(&mut self, elapsed_time: Duration) {
-        self.player.update(elapsed_time);
-    }
-
-    fn draw(&self, graphics: &mut Graphics) {
-        graphics.clear();
-        self.player.draw(graphics);
-        graphics.flip();
     }
 }

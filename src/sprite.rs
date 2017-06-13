@@ -1,7 +1,5 @@
 use game::TILE_SIZE;
 use graphics::Graphics;
-use std::path::Path;
-use sdl2::surface::Surface;
 use sdl2::rect::Rect;
 use time::Duration;
 
@@ -11,43 +9,49 @@ pub trait Sprite {
     fn draw(&self, graphics: &mut Graphics, x: i32, y: i32);
 }
 
-pub struct StaticSprite<'sprite_sheet> {
-    sprite_sheet: Surface<'sprite_sheet>,
+#[derive(Debug)]
+pub struct StaticSprite {
+    sprite_sheet_path: String,
     source_rect: Rect,
 }
 
-impl<'sprite_sheet> StaticSprite<'sprite_sheet> {
-    pub fn new(file_path: &str,
+impl StaticSprite {
+    pub fn new(graphics: &mut Graphics,
+               file_path: &str,
                source_x: i32,
                source_y: i32,
                width: u32,
                height: u32)
                -> StaticSprite {
-        let bmp = Surface::load_bmp(Path::new(file_path)).expect("Failed to load bitmap");
+
+        graphics.load_image(file_path);
+
         StaticSprite {
-            sprite_sheet: bmp,
+            sprite_sheet_path: String::from(file_path),
             source_rect: Rect::new(source_x, source_y, width, height),
         }
     }
 }
 
-impl<'a> Sprite for StaticSprite<'a> {
+impl Sprite for StaticSprite {
     fn draw(&self, graphics: &mut Graphics, x: i32, y: i32) {
         let destination_rect = Rect::new(x, y, self.source_rect.width(), self.source_rect.height());
-        graphics.blit_with_defaults(&self.sprite_sheet, self.source_rect, destination_rect);
+        graphics.blit_surface(&self.sprite_sheet_path, self.source_rect, destination_rect);
     }
 }
 
-pub struct AnimatedSprite<'sprite_sheet> {
-    static_sprite: StaticSprite<'sprite_sheet>,
+#[derive(Debug)]
+pub struct AnimatedSprite {
+    static_sprite: StaticSprite,
     frame_time: Duration,
     num_frames: u32,
     current_frame: u32,
     since_last_frame_change: Duration, // Elapsed since last frame change
 }
 
-impl<'sprite_sheet> AnimatedSprite<'sprite_sheet> {
-    pub fn new(file_path: &str,
+impl AnimatedSprite {
+    pub fn new(graphics: &mut Graphics,
+               file_path: &'static str,
                source_x: i32,
                source_y: i32,
                width: u32,
@@ -55,19 +59,23 @@ impl<'sprite_sheet> AnimatedSprite<'sprite_sheet> {
                fps: u32,
                num_frames: u32)
                -> AnimatedSprite {
-        let static_sprite = StaticSprite::new(file_path, source_x, source_y, width, height);
+        let static_sprite: StaticSprite =
+            StaticSprite::new(graphics, file_path, source_x, source_y, width, height);
         AnimatedSprite {
-            static_sprite: static_sprite,
+            static_sprite,
             frame_time: Duration::milliseconds((1000 / fps) as i64),
-            num_frames: num_frames,
+            num_frames,
             current_frame: 0,
             since_last_frame_change: Duration::zero(),
         }
     }
 }
 
-impl<'a> Sprite for AnimatedSprite<'a> {
+impl<'s> Sprite for AnimatedSprite {
     fn update(&mut self, elapsed_time: Duration) {
+        if self.num_frames == 1 {
+            return;
+        }
         self.since_last_frame_change = self.since_last_frame_change + elapsed_time;
         if self.since_last_frame_change > self.frame_time {
             self.current_frame += 1;
