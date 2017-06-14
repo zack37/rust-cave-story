@@ -1,5 +1,6 @@
 use graphics::{Graphics, SCREEN_HEIGHT, SCREEN_WIDTH};
 use input::Input;
+use map::Map;
 use player::Player;
 use sdl2;
 use sdl2::event::Event;
@@ -7,7 +8,7 @@ use sdl2::keyboard::Keycode;
 use std::thread::sleep;
 use time::{Duration, PreciseTime};
 
-const K_FPS: i64 = 60;
+const FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
 
 pub struct Game {}
@@ -23,17 +24,14 @@ impl Game {
         let mut event_pump = sdl_context
             .event_pump()
             .expect("Failed to create event pump");
-        let video_subsystem = sdl_context
-            .video()
-            .expect("Failed to create video subsystem");
-        let mut graphics: &mut Graphics = &mut Graphics::new(video_subsystem)
+        let mut graphics: &mut Graphics = &mut Graphics::new(sdl_context)
                                                    .expect("Failed to create graphics");
         let mut input = Input::new();
         let (width, height) = (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
         let mut player = Player::new(graphics, width / 2, height / 2);
+        let mut map = Map::create_test_map(graphics);
 
         // Prepare
-        sdl_context.mouse().show_cursor(false);
         let mut last_update_time = PreciseTime::now();
 
         // while running ~ 60Hz
@@ -88,13 +86,16 @@ impl Game {
 
             // UPDATE
             let current_time = PreciseTime::now();
-            player.update(last_update_time.to(current_time));
+            let elapsed_time = last_update_time.to(current_time);
+            player.update(elapsed_time);
+            map.update(elapsed_time);
             last_update_time = current_time;
             //
 
             // DRAW
             graphics.clear();
             player.draw(&mut graphics);
+            map.draw(graphics);
             graphics.flip();
             //
 
@@ -104,7 +105,8 @@ impl Game {
     }
 
     fn frame_limit(&self, elapsed_time: Duration) {
-        let sleep_duration = Duration::milliseconds(1000 / K_FPS) - elapsed_time;
+        let ms_per_frame = Duration::milliseconds(1000 / FPS);
+        let sleep_duration = ms_per_frame - elapsed_time;
 
         if let Ok(sleep_duration) = sleep_duration.to_std() {
             sleep(sleep_duration);

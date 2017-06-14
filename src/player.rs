@@ -137,7 +137,7 @@ impl Jump {
 }
 
 pub struct Player {
-    sprites: HashMap<SpriteState, AnimatedSprite>,
+    sprites: HashMap<SpriteState, Box<Sprite>>,
     x: i32,
     y: i32,
     acceleration_x: f32,
@@ -284,30 +284,50 @@ impl Player {
         };
         let vertical_offset = match sprite_state.vertical_facing {
             VerticalFacing::Up => UP_FRAME_OFFSET * tile_size,
-            _ => 0
+            _ => 0,
         };
         let source_x = frame * tile_size + vertical_offset;
-        
+
         let horizontal_offset = match sprite_state.horizontal_facing {
             HorizontalFacing::Left => 0,
-            HorizontalFacing::Right => 1
-        }; 
+            HorizontalFacing::Right => 1,
+        };
         let source_y = (CHARACTER_FRAME + horizontal_offset) * tile_size;
 
         let sprite = match sprite_state.motion_type {
-            MotionType::Walking => AnimatedSprite::new(graphics, FILE_PATH, source_x, source_y, TILE_SIZE, TILE_SIZE, WALK_FPS, NUM_WALK_FRAME),
+            MotionType::Walking => {
+                AnimatedSprite::new(graphics,
+                                    FILE_PATH,
+                                    source_x,
+                                    source_y,
+                                    TILE_SIZE,
+                                    TILE_SIZE,
+                                    WALK_FPS,
+                                    NUM_WALK_FRAME)
+            }
             _ => {
                 let source_x = if sprite_state.vertical_facing == VerticalFacing::Down {
                     if sprite_state.motion_type == MotionType::Standing {
                         BACK_FRAME * tile_size
-                    } else { DOWN_FRAME * tile_size }
-                } else { source_x };
+                    } else {
+                        DOWN_FRAME * tile_size
+                    }
+                } else {
+                    source_x
+                };
                 // "Static" sprite
-                AnimatedSprite::new(graphics, FILE_PATH, source_x, source_y, TILE_SIZE, TILE_SIZE, 1, 1)
+                AnimatedSprite::new(graphics,
+                                    FILE_PATH,
+                                    source_x,
+                                    source_y,
+                                    TILE_SIZE,
+                                    TILE_SIZE,
+                                    1,
+                                    1)
             }
         };
 
-        self.sprites.insert(sprite_state, sprite);
+        self.sprites.insert(sprite_state, Box::new(sprite));
     }
 
     pub fn draw(&self, graphics: &mut Graphics) {

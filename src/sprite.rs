@@ -4,12 +4,11 @@ use sdl2::rect::Rect;
 use time::Duration;
 
 pub trait Sprite {
-    #[allow(unused)]
-    fn update(&mut self, elapsed_time: Duration) {}
     fn draw(&self, graphics: &mut Graphics, x: i32, y: i32);
+    fn update(&mut self, elapsed_time: Duration) {}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StaticSprite {
     sprite_sheet_path: String,
     source_rect: Rect,
@@ -40,7 +39,7 @@ impl Sprite for StaticSprite {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AnimatedSprite {
     static_sprite: StaticSprite,
     frame_time: Duration,
@@ -71,7 +70,7 @@ impl AnimatedSprite {
     }
 }
 
-impl<'s> Sprite for AnimatedSprite {
+impl Sprite for AnimatedSprite {
     fn update(&mut self, elapsed_time: Duration) {
         if self.num_frames == 1 {
             return;

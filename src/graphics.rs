@@ -1,4 +1,4 @@
-use sdl2::VideoSubsystem;
+use sdl2::Sdl;
 use sdl2::render::WindowCanvas;
 use sdl2::rect::Rect;
 use sdl2::surface::Surface;
@@ -13,27 +13,34 @@ pub struct Graphics<'g> {
 }
 
 impl<'g> Graphics<'g> {
-    pub fn new(video_subsystem: VideoSubsystem) -> Result<Graphics<'g>, &'static str> {
-        match video_subsystem
-                  .window("Cave Story: Rust", SCREEN_WIDTH, SCREEN_HEIGHT)
-                  .position_centered()
-                  .opengl()
-                  .build() {
-            Ok(window) => {
-                match window.into_canvas().software().build() {
-                    Ok(mut canvas) => {
-                        canvas.clear();
-                        canvas.present();
-                        Ok(Graphics {
-                               screen: canvas,
-                               sprite_sheets: HashMap::new(),
-                           })
-                    }
-                    Err(_) => Err("Failed to create canvas"),
-                }
-            }
-            Err(_) => Err("Failed to create window"),
-        }
+    pub fn new(sdl_context: Sdl) -> Result<Graphics<'g>, String> {
+        sdl_context.mouse().show_cursor(false);
+        sdl_context
+            .video()
+            .map_err(|e| e.to_string())
+            .and_then(|video_subsystem| {
+                video_subsystem
+                    .window("Cave Story: Rust", SCREEN_WIDTH, SCREEN_HEIGHT)
+                    .position_centered()
+                    .opengl()
+                    .build()
+                    .map_err(|e| e.to_string())
+                    .and_then(|window| {
+                        window
+                            .into_canvas()
+                            .software()
+                            .build()
+                            .map_err(|e| e.to_string())
+                            .and_then(|mut canvas| {
+                                          canvas.clear();
+                                          canvas.present();
+                                          Ok(Graphics {
+                                                 screen: canvas,
+                                                 sprite_sheets: HashMap::new(),
+                                             })
+                                      })
+                    })
+            })
     }
 
     pub fn load_image(&mut self, file_path: &str) -> &Surface<'g> {
