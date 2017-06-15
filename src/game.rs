@@ -87,7 +87,7 @@ impl Game {
             // UPDATE
             let current_time = PreciseTime::now();
             let elapsed_time = last_update_time.to(current_time);
-            player.update(elapsed_time);
+            player.update(elapsed_time, &map);
             map.update(elapsed_time);
             last_update_time = current_time;
             //

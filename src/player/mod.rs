@@ -3,6 +3,8 @@ mod sprite_state;
 
 use game::TILE_SIZE;
 use graphics::Graphics;
+use map::Map;
+use sdl2::rect::Rect;
 use self::jump::Jump;
 use sprite::{Sprite, AnimatedSprite};
 use self::sprite_state::*;
@@ -49,6 +51,8 @@ pub struct Player {
     vertical_facing: VerticalFacing,
     on_ground: bool,
     jump: Jump,
+    collision_x: Rect,
+    collision_y: Rect,
 }
 
 impl Player {
@@ -64,6 +68,8 @@ impl Player {
             vertical_facing: VerticalFacing::Horizontal,
             on_ground: false,
             jump: Jump::new(),
+            collision_x: Rect::new(6, 10, 20, 12),
+            collision_y: Rect::new(10, 2, 12, 30),
         };
         player.initialize_sprites(graphics)
     }
@@ -111,7 +117,11 @@ impl Player {
         self.jump.deactivate();
     }
 
-    pub fn update(&mut self, elapsed_time: Duration) {
+    pub fn draw(&self, graphics: &mut Graphics) {
+        self.sprites[&self.get_sprite_state()].draw(graphics, self.x, self.y);
+    }
+
+    pub fn update(&mut self, elapsed_time: Duration, map: &Map) {
         let ss = self.get_sprite_state();
         self.sprites
             .get_mut(&ss)
@@ -159,6 +169,38 @@ impl Player {
             }
         };
         SpriteState::new(motion_type, self.horizontal_facing, self.vertical_facing)
+    }
+
+    fn left_collision(&self, delta: i32) -> Rect {
+        assert!(delta <= 0);
+        Rect::new(self.x + self.collision_x.left() + delta,
+                  self.y + self.collision_x.top(),
+                  self.collision_x.width() / 2 + delta.abs() as u32,
+                  self.collision_x.height())
+    }
+
+    fn right_collision(&self, delta: i32) -> Rect {
+        assert!(delta >= 0);
+        Rect::new(self.x + self.collision_x.left() + (self.collision_x.width() / 2) as i32,
+                  self.y + self.collision_x.top(),
+                  self.collision_x.width() / 2 + delta as u32,
+                  self.collision_x.height())
+    }
+
+    fn top_collision(&self, delta: i32) -> Rect {
+        assert!(delta <= 0);
+        Rect::new(self.x + self.collision_y.left(),
+                  self.y + self.collision_y.top() + delta,
+                  self.collision_y.width(),
+                  self.collision_y.height() / 2 + delta.abs() as u32)
+    }
+
+    fn bottom_collision(&self, delta: i32) -> Rect {
+        assert!(delta >= 0);
+        Rect::new(self.x + self.collision_y.left(),
+                  self.y + self.collision_y.top() + (self.collision_x.height() / 2) as i32,
+                  self.collision_y.width(),
+                  self.collision_y.height() / 2 + delta as u32)
     }
 
     fn initialize_sprites(mut self, graphics: &mut Graphics) -> Player {
@@ -230,9 +272,5 @@ impl Player {
         };
 
         self.sprites.insert(sprite_state, Box::new(sprite));
-    }
-
-    pub fn draw(&self, graphics: &mut Graphics) {
-        self.sprites[&self.get_sprite_state()].draw(graphics, self.x, self.y);
     }
 }
