@@ -1,6 +1,11 @@
+mod jump;
+mod sprite_state;
+
 use game::TILE_SIZE;
 use graphics::Graphics;
+use self::jump::Jump;
 use sprite::{Sprite, AnimatedSprite};
+use self::sprite_state::*;
 use std::collections::HashMap;
 use time::Duration;
 
@@ -14,7 +19,6 @@ const MAX_SPEED_Y: f32 = 0.325; // pixels/ms
 
 // Jump motion
 const JUMP_SPEED: f32 = 0.325; // pixels/ms
-const JUMP_TIME: i64 = 275; // ms
 
 // Sprite Frames
 const CHARACTER_FRAME: i32 = 0;
@@ -33,108 +37,6 @@ const FILE_PATH: &str = "content/MyChar.bmp";
 // Walk frames
 const WALK_FPS: u32 = 15;
 const NUM_WALK_FRAME: u32 = 3;
-
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd)]
-pub enum MotionType {
-    Standing,
-    Walking,
-    Jumping,
-    Falling,
-}
-
-const MOTION_TYPES: [MotionType; 4] = [MotionType::Standing,
-                                       MotionType::Walking,
-                                       MotionType::Jumping,
-                                       MotionType::Falling];
-
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd)]
-pub enum HorizontalFacing {
-    Left,
-    Right,
-}
-
-const HORIZONTAL_FACING: [HorizontalFacing; 2] = [HorizontalFacing::Left, HorizontalFacing::Right];
-
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd)]
-pub enum VerticalFacing {
-    Up,
-    Down,
-    Horizontal,
-}
-
-const VERTICAL_FACING: [VerticalFacing; 3] = [VerticalFacing::Up,
-                                              VerticalFacing::Down,
-                                              VerticalFacing::Horizontal];
-
-#[derive(Eq, Hash, PartialEq)]
-pub struct SpriteState {
-    motion_type: MotionType,
-    horizontal_facing: HorizontalFacing,
-    vertical_facing: VerticalFacing,
-}
-
-impl SpriteState {
-    pub fn new<M, D, V>(motion_type: M, horizontal_facing: D, vertical_facing: V) -> SpriteState
-        where M: Into<Option<MotionType>>,
-              D: Into<Option<HorizontalFacing>>,
-              V: Into<Option<VerticalFacing>>
-    {
-        SpriteState {
-            motion_type: motion_type.into().unwrap_or(MotionType::Standing),
-            horizontal_facing: horizontal_facing.into().unwrap_or(HorizontalFacing::Left),
-            vertical_facing: vertical_facing.into().unwrap_or(VerticalFacing::Horizontal),
-        }
-    }
-
-    pub fn lt(&self, rhs: &SpriteState) -> bool {
-        if self.motion_type != rhs.motion_type {
-            return self.motion_type < rhs.motion_type;
-        }
-        if self.horizontal_facing != rhs.horizontal_facing {
-            return self.horizontal_facing < rhs.horizontal_facing;
-        }
-        if self.vertical_facing != rhs.vertical_facing {
-            return self.vertical_facing < rhs.vertical_facing;
-        }
-        false
-    }
-}
-
-struct Jump {
-    time_remaining: Duration,
-    active: bool,
-}
-
-impl Jump {
-    pub fn new() -> Jump {
-        Jump {
-            time_remaining: Duration::zero(),
-            active: false,
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.time_remaining = Duration::milliseconds(JUMP_TIME);
-        self.reactivate();
-    }
-
-    pub fn reactivate(&mut self) {
-        self.active = self.time_remaining > Duration::zero();
-    }
-
-    pub fn deactivate(&mut self) {
-        self.active = false;
-    }
-
-    pub fn update(&mut self, elapsed_time: Duration) {
-        if self.active {
-            self.time_remaining = self.time_remaining - elapsed_time;
-            if self.time_remaining <= Duration::zero() {
-                self.active = false;
-            }
-        }
-    }
-}
 
 pub struct Player {
     sprites: HashMap<SpriteState, Box<Sprite>>,
@@ -228,7 +130,7 @@ impl Player {
         }
 
         self.y += (self.velocity_y * elapsed_time_ms).round() as i32;
-        if !self.jump.active {
+        if !self.jump.active() {
             self.velocity_y = (self.velocity_y + GRAVITY * elapsed_time_ms).min(MAX_SPEED_Y);
         }
 
@@ -276,25 +178,25 @@ impl Player {
     fn initialize_sprite(&mut self, graphics: &mut Graphics, sprite_state: SpriteState) {
         let tile_size = TILE_SIZE as i32;
 
-        let frame = match sprite_state.motion_type {
+        let frame = match sprite_state.motion_type() {
             MotionType::Walking => WALK_FRAME,
             MotionType::Standing => STAND_FRAME,
             MotionType::Jumping => JUMP_FRAME,
             MotionType::Falling => FALL_FRAME,
         };
-        let vertical_offset = match sprite_state.vertical_facing {
+        let vertical_offset = match sprite_state.vertical_facing() {
             VerticalFacing::Up => UP_FRAME_OFFSET * tile_size,
             _ => 0,
         };
         let source_x = frame * tile_size + vertical_offset;
 
-        let horizontal_offset = match sprite_state.horizontal_facing {
+        let horizontal_offset = match sprite_state.horizontal_facing() {
             HorizontalFacing::Left => 0,
             HorizontalFacing::Right => 1,
         };
         let source_y = (CHARACTER_FRAME + horizontal_offset) * tile_size;
 
-        let sprite = match sprite_state.motion_type {
+        let sprite = match sprite_state.motion_type() {
             MotionType::Walking => {
                 AnimatedSprite::new(graphics,
                                     FILE_PATH,
@@ -306,8 +208,8 @@ impl Player {
                                     NUM_WALK_FRAME)
             }
             _ => {
-                let source_x = if sprite_state.vertical_facing == VerticalFacing::Down {
-                    if sprite_state.motion_type == MotionType::Standing {
+                let source_x = if sprite_state.vertical_facing() == VerticalFacing::Down {
+                    if sprite_state.motion_type() == MotionType::Standing {
                         BACK_FRAME * tile_size
                     } else {
                         DOWN_FRAME * tile_size

@@ -7,13 +7,13 @@ use std::collections::HashMap;
 pub const SCREEN_WIDTH: u32 = 640;
 pub const SCREEN_HEIGHT: u32 = 480;
 
-pub struct Graphics<'g> {
+pub struct Graphics {
     screen: WindowCanvas,
-    sprite_sheets: HashMap<String, Surface<'g>>,
+    sprite_sheets: HashMap<String, Surface<'static>>,
 }
 
-impl<'g> Graphics<'g> {
-    pub fn new(sdl_context: Sdl) -> Result<Graphics<'g>, String> {
+impl Graphics {
+    pub fn new(sdl_context: Sdl) -> Result<Graphics, String> {
         sdl_context.mouse().show_cursor(false);
         sdl_context
             .video()
@@ -43,7 +43,7 @@ impl<'g> Graphics<'g> {
             })
     }
 
-    pub fn load_image(&mut self, file_path: &str) -> &Surface<'g> {
+    pub fn load_image(&mut self, file_path: &str) -> &Surface<'static> {
         self.sprite_sheets
             .entry(String::from(file_path))
             .or_insert_with(|| Surface::load_bmp(file_path).expect("Failed to load image"))
