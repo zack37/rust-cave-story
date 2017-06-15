@@ -149,9 +149,10 @@ impl Player {
         let delta = (self.velocity_x * elapsed_time_ms).round() as i32;
 
         // check collision in direction of delta
-        if delta > 0 { // moving right
+        if delta > 0 {
+            // moving right
             // right side collisions
-            let info = self.get_collision_info(self.right_collision(delta), map); 
+            let info = self.get_collision_info(self.right_collision(delta), map);
             if info.collided {
                 println!("moving right col {}", info.col);
                 self.x = info.col * TILE_SIZE as i32 - self.collision_x.right();
@@ -161,13 +162,14 @@ impl Player {
             }
 
             // left side collisions
-            let info = self.get_collision_info(self.left_collision(0), map); 
+            let info = self.get_collision_info(self.left_collision(0), map);
             if info.collided {
                 self.x = info.col * TILE_SIZE as i32 + self.collision_x.right() as i32;
             }
-        } else { // moving left
+        } else {
+            // moving left
             // left side collisions
-            let info = self.get_collision_info(self.left_collision(delta), map); 
+            let info = self.get_collision_info(self.left_collision(delta), map);
             if info.collided {
                 self.x = info.col * TILE_SIZE as i32 + self.collision_x.right() as i32;
                 self.velocity_x = 0.0;
@@ -176,10 +178,10 @@ impl Player {
             }
 
             // right side collisions
-            let info = self.get_collision_info(self.right_collision(0), map); 
+            let info = self.get_collision_info(self.right_collision(0), map);
             if info.collided {
                 self.x = info.col * TILE_SIZE as i32 - self.collision_x.right();
-            } 
+            }
         }
     }
 
@@ -231,11 +233,11 @@ impl Player {
 
     fn get_collision_info(&self, rect: Rect, map: &Map) -> CollisionInfo {
         match map.get_colliding_tiles(&rect)
-            .iter()
-            .find(|tile| tile.tile_type() == TileType::Wall) {
-                Some(ct) => CollisionInfo::new(true, ct.row(), ct.col()),
-                None => CollisionInfo::new(false, 0, 0)
-            }
+                  .iter()
+                  .find(|tile| tile.tile_type() == TileType::Wall) {
+            Some(ct) => CollisionInfo::new(true, ct.row(), ct.col()),
+            None => CollisionInfo::new(false, 0, 0),
+        }
     }
 
     fn get_sprite_state(&self) -> SpriteState {

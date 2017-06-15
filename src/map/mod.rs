@@ -32,14 +32,13 @@ impl Map {
         map.tiles = repeat(blank_row.clone()).take(num_rows).collect();
 
         let file_path = "content/PrtCave.bmp";
-        let sprite = Rc::new(RefCell::new(
-            Box::new(StaticSprite::new(
-                graphics,
-                file_path,
-                TILE_SIZE as i32,
-                0,
-                TILE_SIZE,
-                TILE_SIZE)) as Box<Sprite>));
+        let sprite = Rc::new(RefCell::new(Box::new(StaticSprite::new(graphics,
+                                                                     file_path,
+                                                                     TILE_SIZE as i32,
+                                                                     0,
+                                                                     TILE_SIZE,
+                                                                     TILE_SIZE)) as
+                                          Box<Sprite>));
         let wall_tile = Tile::from_sprite(sprite, TileType::Wall);
 
         // floor
@@ -54,11 +53,11 @@ impl Map {
         }
 
         map.tiles[num_rows - 2][3] = wall_tile.clone();
-		map.tiles[num_rows - 2][5] = wall_tile.clone();
+        map.tiles[num_rows - 2][5] = wall_tile.clone();
 
-		map.tiles[num_rows - 3][4] = wall_tile.clone();
-		map.tiles[num_rows - 4][3] = wall_tile.clone();
-		map.tiles[num_rows - 5][2] = wall_tile.clone();
+        map.tiles[num_rows - 3][4] = wall_tile.clone();
+        map.tiles[num_rows - 4][3] = wall_tile.clone();
+        map.tiles[num_rows - 5][2] = wall_tile.clone();
 
         map
     }
@@ -74,9 +73,10 @@ impl Map {
         let mut collision_tiles = Vec::with_capacity(total_tiles);
         for row in first_row..(last_row + 1) {
             for col in first_col..(last_col + 1) {
-                collision_tiles.push(
-                    CollisionTile::new(row, col, self.tiles[row as usize][col as usize].tile_type())
-                );
+                collision_tiles.push(CollisionTile::new(row,
+                                                        col,
+                                                        self.tiles[row as usize][col as usize]
+                                                            .tile_type()));
             }
         }
 

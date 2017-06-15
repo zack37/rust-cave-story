@@ -18,16 +18,18 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn new() -> Tile
-    {
+    pub fn new() -> Tile {
         Tile {
             tile_type: TileType::Air,
-            sprite: None
+            sprite: None,
         }
     }
 
     pub fn from_sprite(sprite: TileSprite, tile_type: TileType) -> Tile {
-        Tile { tile_type, sprite: Some(sprite.clone()) }
+        Tile {
+            tile_type,
+            sprite: Some(sprite.clone()),
+        }
     }
 
     pub fn sprite(&self) -> Option<TileSprite> {
