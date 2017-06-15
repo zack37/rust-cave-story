@@ -1,29 +1,36 @@
 use sprite::Sprite;
 use std::clone::Clone;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TileType {
     Air,
     Wall,
 }
 
+type TileSprite = Rc<RefCell<Box<Sprite>>>;
+
 #[derive(Clone)]
-pub struct Tile<S: Sprite + Clone> {
+pub struct Tile {
     tile_type: TileType,
-    sprite: S,
+    sprite: Option<TileSprite>,
 }
 
-impl<S: Sprite + Clone> Tile<S> {
-    pub fn new<T>(tile_type: T, sprite: S) -> Tile<S>
-        where T: Into<Option<TileType>>
+impl Tile {
+    pub fn new() -> Tile
     {
         Tile {
-            tile_type: tile_type.into().unwrap_or(TileType::Air),
-            sprite: sprite,
+            tile_type: TileType::Air,
+            sprite: None
         }
     }
 
-    pub fn sprite(&self) -> S {
+    pub fn from_sprite(sprite: TileSprite, tile_type: TileType) -> Tile {
+        Tile { tile_type, sprite: Some(sprite.clone()) }
+    }
+
+    pub fn sprite(&self) -> Option<TileSprite> {
         self.sprite.clone()
     }
 

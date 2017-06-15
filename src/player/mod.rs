@@ -1,13 +1,16 @@
+mod collision_info;
 mod jump;
 mod sprite_state;
 
 use game::TILE_SIZE;
 use graphics::Graphics;
 use map::Map;
+use map::tile::TileType;
 use sdl2::rect::Rect;
+use self::collision_info::CollisionInfo;
 use self::jump::Jump;
-use sprite::{Sprite, AnimatedSprite};
 use self::sprite_state::*;
+use sprite::{Sprite, AnimatedSprite};
 use std::collections::HashMap;
 use time::Duration;
 
@@ -123,13 +126,16 @@ impl Player {
 
     pub fn update(&mut self, elapsed_time: Duration, map: &Map) {
         let ss = self.get_sprite_state();
-        self.sprites
-            .get_mut(&ss)
-            .expect("Failed getting default sprite")
-            .update(elapsed_time);
+        self.sprites.get_mut(&ss).unwrap().update(elapsed_time);
         self.jump.update(elapsed_time);
         let elapsed_time_ms = elapsed_time.num_milliseconds() as f32;
-        self.x += (self.velocity_x * elapsed_time_ms).round() as i32;
+
+        self.update_x(elapsed_time_ms, map);
+        self.update_y(elapsed_time_ms, map);
+    }
+
+    fn update_x(&mut self, elapsed_time_ms: f32, map: &Map) {
+        // update velocity
         self.velocity_x += self.acceleration_x * elapsed_time_ms;
         if self.acceleration_x < 0.0 {
             self.velocity_x = self.velocity_x.max(-MAX_SPEED_X);
@@ -139,19 +145,97 @@ impl Player {
             self.velocity_x *= SLOWDOWN_FACTOR;
         }
 
-        self.y += (self.velocity_y * elapsed_time_ms).round() as i32;
+        // calculate delta
+        let delta = (self.velocity_x * elapsed_time_ms).round() as i32;
+
+        // check collision in direction of delta
+        if delta > 0 { // moving right
+            // right side collisions
+            let info = self.get_collision_info(self.right_collision(delta), map); 
+            if info.collided {
+                println!("moving right col {}", info.col);
+                self.x = info.col * TILE_SIZE as i32 - self.collision_x.right();
+                self.velocity_x = 0.0;
+            } else {
+                self.x += delta;
+            }
+
+            // left side collisions
+            let info = self.get_collision_info(self.left_collision(0), map); 
+            if info.collided {
+                self.x = info.col * TILE_SIZE as i32 + self.collision_x.right() as i32;
+            }
+        } else { // moving left
+            // left side collisions
+            let info = self.get_collision_info(self.left_collision(delta), map); 
+            if info.collided {
+                self.x = info.col * TILE_SIZE as i32 + self.collision_x.right() as i32;
+                self.velocity_x = 0.0;
+            } else {
+                self.x += delta;
+            }
+
+            // right side collisions
+            let info = self.get_collision_info(self.right_collision(0), map); 
+            if info.collided {
+                self.x = info.col * TILE_SIZE as i32 - self.collision_x.right();
+            } 
+        }
+    }
+
+    fn update_y(&mut self, elapsed_time_ms: f32, map: &Map) {
+        // Update velocity
         if !self.jump.active() {
             self.velocity_y = (self.velocity_y + GRAVITY * elapsed_time_ms).min(MAX_SPEED_Y);
         }
 
+        //calculate_delta
+        let delta = (self.velocity_y * elapsed_time_ms).round() as i32;
 
-        //TODO: remove this hack
-        if self.y > 320 {
-            self.y = 320;
-            self.velocity_y = 0.0;
+        // check collision in direction of delta
+        if delta > 0 {
+            let info = self.get_collision_info(self.bottom_collision(delta), map);
+
+            self.on_ground = info.collided;
+            if info.collided {
+                self.y = info.row * (TILE_SIZE as i32) - self.collision_y.bottom();
+                self.velocity_y = 0.0;
+            } else {
+                self.y += delta;
+            }
+
+            let info = self.get_collision_info(self.top_collision(0), map);
+
+            if info.collided {
+                self.y = info.row * TILE_SIZE as i32 + self.collision_y.height() as i32;
+            }
+        } else {
+            let info = self.get_collision_info(self.top_collision(delta), map);
+
+            if info.collided {
+                self.y = info.row * TILE_SIZE as i32 + self.collision_y.height() as i32;
+                self.velocity_y = 0.0;
+            } else {
+                self.y += delta;
+                self.on_ground = false;
+            }
+
+            let info = self.get_collision_info(self.bottom_collision(0), map);
+
+            self.on_ground = info.collided;
+            if info.collided {
+                self.y = info.row * TILE_SIZE as i32 - self.collision_y.bottom();
+            }
         }
-        self.on_ground = self.y == 320;
-        //TODO: remove this hack
+    }
+
+    fn get_collision_info(&self, rect: Rect, map: &Map) -> CollisionInfo {
+        match map.get_colliding_tiles(&rect)
+            .iter()
+            .find(|tile| tile.tile_type() == TileType::Wall) {
+                Some(ct) => CollisionInfo::new(true, ct.row(), ct.col()),
+                None => CollisionInfo::new(false, 0, 0)
+            }
     }
 
     fn get_sprite_state(&self) -> SpriteState {
@@ -198,7 +282,7 @@ impl Player {
     fn bottom_collision(&self, delta: i32) -> Rect {
         assert!(delta >= 0);
         Rect::new(self.x + self.collision_y.left(),
-                  self.y + self.collision_y.top() + (self.collision_x.height() / 2) as i32,
+                  self.y + self.collision_y.top() + (self.collision_y.height() / 2) as i32,
                   self.collision_y.width(),
                   self.collision_y.height() / 2 + delta as u32)
     }
