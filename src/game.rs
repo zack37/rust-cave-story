@@ -56,38 +56,10 @@ impl Game {
                 break 'running;
             }
 
-            // Player horizontal movement
-            if input.is_key_held(Keycode::Left) && input.is_key_held(Keycode::Right) {
-                player.stop_moving();
-            } else if input.is_key_held(Keycode::Left) {
-                player.start_moving_left();
-            } else if input.is_key_held(Keycode::Right) {
-                player.start_moving_right();
-            } else {
-                player.stop_moving();
-            }
-
-            if input.is_key_held(Keycode::Up) && input.is_key_held(Keycode::Down) {
-                player.look_horizontal();
-            } else if input.is_key_held(Keycode::Up) {
-                player.look_up();
-            } else if input.is_key_held(Keycode::Down) {
-                player.look_down();
-            } else {
-                player.look_horizontal();
-            }
-
-            // Player jump
-            if input.was_key_pressed(Keycode::Z) {
-                player.start_jump();
-            } else if input.was_key_released(Keycode::Z) {
-                player.stop_jump();
-            }
-
             // UPDATE
             let current_time = PreciseTime::now();
             let elapsed_time = last_update_time.to(current_time);
-            player.update(elapsed_time, &map);
+            player.update(elapsed_time, &map, &input);
             map.update(elapsed_time);
             last_update_time = current_time;
             //

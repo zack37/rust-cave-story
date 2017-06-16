@@ -3,9 +3,11 @@ mod sprite_state;
 
 use game::TILE_SIZE;
 use graphics::Graphics;
+use input::Input;
 use map::Map;
 use map::tile::TileType;
 use sdl2::rect::Rect;
+use sdl2::keyboard::Keycode;
 use self::collision_info::CollisionInfo;
 use self::sprite_state::*;
 use sprite::{Sprite, AnimatedSprite};
@@ -129,11 +131,12 @@ impl Player {
         self.sprites[&self.get_sprite_state()].draw(graphics, self.x, self.y);
     }
 
-    pub fn update(&mut self, elapsed_time: Duration, map: &Map) {
+    pub fn update(&mut self, elapsed_time: Duration, map: &Map, input: &Input) {
         let ss = self.get_sprite_state();
         self.sprites.get_mut(&ss).unwrap().update(elapsed_time);
         let elapsed_time_ms = elapsed_time.num_milliseconds() as f32;
 
+        self.update_key_presses(input);
         self.update_x(elapsed_time_ms, map);
         self.update_y(elapsed_time_ms, map);
     }
@@ -256,6 +259,36 @@ impl Player {
             if info.collided {
                 self.y = info.row * TILE_SIZE as i32 - self.collision_y.bottom();
             }
+        }
+    }
+
+    fn update_key_presses(&mut self, input: &Input) {
+        // Horizontal movement
+        if input.are_all_keys_held(&[Keycode::Left, Keycode::Right]) {
+            self.stop_moving();
+        } else if input.is_key_held(Keycode::Left) {
+            self.start_moving_left();
+        } else if input.is_key_held(Keycode::Right) {
+            self.start_moving_right();
+        } else {
+            self.stop_moving();
+        }
+
+        if input.are_all_keys_held(&[Keycode::Up, Keycode::Down]) {
+            self.look_horizontal();
+        } else if input.is_key_held(Keycode::Up) {
+            self.look_up();
+        } else if input.is_key_held(Keycode::Down) {
+            self.look_down();
+        } else {
+            self.look_horizontal();
+        }
+
+        // Player jump
+        if input.was_key_pressed(Keycode::Z) {
+            self.start_jump();
+        } else if input.was_key_released(Keycode::Z) {
+            self.stop_jump();
         }
     }
 

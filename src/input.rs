@@ -7,6 +7,7 @@ pub struct Input {
     released_keys: HashMap<Keycode, bool>,
 }
 
+#[allow(unused)]
 impl Input {
     pub fn new() -> Input {
         Input {
@@ -31,15 +32,23 @@ impl Input {
         self.held_keys.insert(key, false);
     }
 
-    pub fn was_key_pressed(&mut self, key: Keycode) -> bool {
+    pub fn was_key_pressed(&self, key: Keycode) -> bool {
         *self.pressed_keys.get(&key).unwrap_or(&false)
     }
 
-    pub fn was_key_released(&mut self, key: Keycode) -> bool {
+    pub fn was_key_released(&self, key: Keycode) -> bool {
         *self.released_keys.get(&key).unwrap_or(&false)
     }
 
-    pub fn is_key_held(&mut self, key: Keycode) -> bool {
+    pub fn is_key_held(&self, key: Keycode) -> bool {
         *self.held_keys.get(&key).unwrap_or(&false)
+    }
+
+    pub fn are_all_keys_held(&self, keys: &[Keycode]) -> bool {
+        keys.iter().all(|&key| self.is_key_held(key))
+    }
+
+    pub fn are_any_keys_held(&self, keys: &[Keycode]) -> bool {
+        keys.iter().any(|&key| self.is_key_held(key))
     }
 }
