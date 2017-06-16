@@ -1,8 +1,9 @@
 mod collision_tile;
 pub mod tile;
 
-use game::TILE_SIZE;
-use graphics::{Graphics, SCREEN_WIDTH, SCREEN_HEIGHT};
+use backdrop::{Backdrop, FixedBackdrop};
+use game::{SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE};
+use graphics::Graphics;
 use sdl2::rect::Rect;
 use sprite::{Sprite, StaticSprite};
 use self::tile::*;
@@ -14,15 +15,21 @@ use time::Duration;
 
 pub struct Map {
     tiles: Vec<Vec<Tile>>,
+    backdrop: Option<Box<Backdrop>>,
 }
 
 impl Map {
     pub fn new() -> Map {
-        Map { tiles: vec![vec![]] }
+        Map {
+            tiles: vec![vec![]],
+            backdrop: None,
+        }
     }
 
     pub fn create_test_map(graphics: &mut Graphics) -> Map {
         let mut map = Map::new();
+
+        map.backdrop = Some(Box::new(FixedBackdrop::new("content/bkBlue.bmp", graphics)));
 
         let num_rows = (SCREEN_HEIGHT / TILE_SIZE) as usize;
         let num_cols = (SCREEN_WIDTH / TILE_SIZE) as usize;
@@ -102,6 +109,12 @@ impl Map {
                     sprite.borrow_mut().draw(graphics, x as i32, y as i32);
                 }
             }
+        }
+    }
+
+    pub fn draw_background(&mut self, graphics: &mut Graphics) {
+        if let Some(ref mut backdrop) = self.backdrop {
+            backdrop.draw(graphics);
         }
     }
 }

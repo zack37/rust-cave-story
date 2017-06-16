@@ -1,6 +1,9 @@
+#![feature(step_by)]
+
 extern crate sdl2;
 extern crate time;
 
+mod backdrop;
 mod game;
 mod graphics;
 mod log;

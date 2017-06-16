@@ -3,6 +3,8 @@ use graphics::Graphics;
 use sdl2::rect::Rect;
 use time::Duration;
 
+const BLACK_IS_TRANSPARENT: bool = true;
+
 pub trait Sprite {
     fn draw(&self, graphics: &mut Graphics, x: i32, y: i32);
     fn update(&mut self, elapsed_time: Duration) {}
@@ -23,7 +25,7 @@ impl StaticSprite {
                height: u32)
                -> StaticSprite {
 
-        graphics.load_image(file_path);
+        graphics.load_image(file_path, BLACK_IS_TRANSPARENT);
 
         StaticSprite {
             sprite_sheet_path: String::from(file_path),

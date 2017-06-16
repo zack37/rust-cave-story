@@ -1,11 +1,10 @@
+use game::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use sdl2::Sdl;
+use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
 use sdl2::rect::Rect;
 use sdl2::surface::Surface;
 use std::collections::HashMap;
-
-pub const SCREEN_WIDTH: u32 = 640;
-pub const SCREEN_HEIGHT: u32 = 480;
 
 pub struct Graphics {
     screen: WindowCanvas,
@@ -43,20 +42,33 @@ impl Graphics {
             })
     }
 
-    pub fn load_image(&mut self, file_path: &str) -> &Surface<'static> {
+    pub fn load_image<T>(&mut self, file_path: &str, black_is_transparent: T) -> &Surface<'static>
+        where T: Into<Option<bool>>
+    {
         self.sprite_sheets
             .entry(String::from(file_path))
-            .or_insert_with(|| Surface::load_bmp(file_path).expect("Failed to load image"))
+            .or_insert_with(|| {
+                let mut surface = Surface::load_bmp(file_path).expect("Failed to load image");
+                if black_is_transparent.into().is_some() {
+                    surface
+                        .set_color_key(true, Color::RGB(0, 0, 0))
+                        .expect("Failed to key sprite");
+                }
+                surface
+            })
     }
 
-    pub fn blit_surface(&mut self, src_id: &str, source_rect: Rect, dest_rect: Rect) {
+    pub fn blit_surface<S, D>(&mut self, src_id: &str, source_rect: S, dest_rect: D)
+        where S: Into<Option<Rect>>,
+              D: Into<Option<Rect>>
+    {
         let surface = self.sprite_sheets.get_mut(src_id).unwrap();
         let texture_creator = self.screen.texture_creator();
         let texture = texture_creator
             .create_texture_from_surface(surface)
             .expect("Failed to create texture");
         self.screen
-            .copy(&texture, Some(source_rect), Some(dest_rect))
+            .copy(&texture, source_rect.into(), dest_rect.into())
             .expect("Failed to copy texture");
     }
 

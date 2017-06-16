@@ -1,4 +1,4 @@
-use graphics::{Graphics, SCREEN_HEIGHT, SCREEN_WIDTH};
+use graphics::Graphics;
 use input::Input;
 use map::Map;
 use player::Player;
@@ -10,6 +10,9 @@ use time::{Duration, PreciseTime};
 
 const FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
+
+pub const SCREEN_WIDTH: u32 = 1280;
+pub const SCREEN_HEIGHT: u32 = 960;
 
 pub struct Game {}
 
@@ -66,6 +69,7 @@ impl Game {
 
             // DRAW
             graphics.clear();
+            map.draw_background(graphics);
             player.draw(&mut graphics);
             map.draw(graphics);
             graphics.flip();
