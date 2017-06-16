@@ -1,5 +1,4 @@
 mod collision_info;
-mod jump;
 mod sprite_state;
 
 use game::TILE_SIZE;
@@ -8,22 +7,24 @@ use map::Map;
 use map::tile::TileType;
 use sdl2::rect::Rect;
 use self::collision_info::CollisionInfo;
-use self::jump::Jump;
 use self::sprite_state::*;
 use sprite::{Sprite, AnimatedSprite};
 use std::collections::HashMap;
 use time::Duration;
 
-const WALKING_ACCELERATION: f32 = 0.0012; // pixels/ms/ms
-const MAX_SPEED_X: f32 = 0.325; // pixels/ms
-const SLOWDOWN_FACTOR: f32 = 0.8;
+// Walk Motion
+const WALKING_ACCELERATION: f32 = 0.00083007812; // pixels/ms/ms
+const MAX_SPEED_X: f32 = 0.15859375; // pixels/ms
+const FRICTION: f32 = 0.00049804687;
 
 // Fall Motion
-const GRAVITY: f32 = 0.0012;
-const MAX_SPEED_Y: f32 = 0.325; // pixels/ms
+const GRAVITY: f32 = 0.00078125;
+const MAX_SPEED_Y: f32 = 0.2998046875; // pixels/ms
 
 // Jump motion
-const JUMP_SPEED: f32 = 0.325; // pixels/ms
+const JUMP_SPEED: f32 = 0.25; // pixels/ms
+const AIR_ACCELERATION: f32 = 0.0003125; // pixels/ms/ms
+const JUMP_GRAVITY: f32 = 0.0003125; // pixels/ms/ms
 
 // Sprite Frames
 const CHARACTER_FRAME: i32 = 0;
@@ -47,13 +48,14 @@ pub struct Player {
     sprites: HashMap<SpriteState, Box<Sprite>>,
     x: i32,
     y: i32,
-    acceleration_x: f32,
+    acceleration_x: i8,
     velocity_x: f32,
     velocity_y: f32,
     horizontal_facing: HorizontalFacing,
     vertical_facing: VerticalFacing,
+    jump_active: bool,
+    interacting: bool,
     on_ground: bool,
-    jump: Jump,
     collision_x: Rect,
     collision_y: Rect,
 }
@@ -64,13 +66,14 @@ impl Player {
             sprites: HashMap::new(),
             x,
             y,
-            acceleration_x: 0.0,
+            acceleration_x: 0,
             velocity_x: 0.0,
             velocity_y: 0.0,
             horizontal_facing: HorizontalFacing::Left,
             vertical_facing: VerticalFacing::Horizontal,
+            jump_active: false,
+            interacting: false,
             on_ground: false,
-            jump: Jump::new(),
             collision_x: Rect::new(6, 10, 20, 12),
             collision_y: Rect::new(10, 2, 12, 30),
         };
@@ -78,25 +81,32 @@ impl Player {
     }
 
     pub fn start_moving_left(&mut self) {
-        self.acceleration_x = -WALKING_ACCELERATION;
+        self.acceleration_x = -1;
         self.horizontal_facing = HorizontalFacing::Left;
+        self.interacting = false;
     }
 
     pub fn start_moving_right(&mut self) {
-        self.acceleration_x = WALKING_ACCELERATION;
+        self.acceleration_x = 1;
         self.horizontal_facing = HorizontalFacing::Right;
+        self.interacting = false;
     }
 
     pub fn stop_moving(&mut self) {
-        self.acceleration_x = 0.0;
+        self.acceleration_x = 0;
     }
 
     pub fn look_up(&mut self) {
         self.vertical_facing = VerticalFacing::Up;
+        self.interacting = false;
     }
 
     pub fn look_down(&mut self) {
+        if self.vertical_facing == VerticalFacing::Down {
+            return;
+        }
         self.vertical_facing = VerticalFacing::Down;
+        self.interacting = self.on_ground;
     }
 
     pub fn look_horizontal(&mut self) {
@@ -104,20 +114,15 @@ impl Player {
     }
 
     pub fn start_jump(&mut self) {
-        if self.on_ground() {
-            self.jump.reset();
+        self.jump_active = true;
+        self.interacting = false;
+        if self.on_ground {
             self.velocity_y = -JUMP_SPEED;
-        } else if self.velocity_y < 0.0 {
-            self.jump.reactivate();
         }
     }
 
-    fn on_ground(&self) -> bool {
-        self.on_ground
-    }
-
     pub fn stop_jump(&mut self) {
-        self.jump.deactivate();
+        self.jump_active = false;
     }
 
     pub fn draw(&self, graphics: &mut Graphics) {
@@ -127,7 +132,6 @@ impl Player {
     pub fn update(&mut self, elapsed_time: Duration, map: &Map) {
         let ss = self.get_sprite_state();
         self.sprites.get_mut(&ss).unwrap().update(elapsed_time);
-        self.jump.update(elapsed_time);
         let elapsed_time_ms = elapsed_time.num_milliseconds() as f32;
 
         self.update_x(elapsed_time_ms, map);
@@ -136,13 +140,34 @@ impl Player {
 
     fn update_x(&mut self, elapsed_time_ms: f32, map: &Map) {
         // update velocity
-        self.velocity_x += self.acceleration_x * elapsed_time_ms;
-        if self.acceleration_x < 0.0 {
+        let acceleration_x = if self.acceleration_x < 0 {
+            if self.on_ground {
+                -WALKING_ACCELERATION
+            } else {
+                -AIR_ACCELERATION
+            }
+        } else if self.acceleration_x > 0 {
+            if self.on_ground {
+                WALKING_ACCELERATION
+            } else {
+                AIR_ACCELERATION
+            }
+        } else {
+            0.0
+        };
+        self.velocity_x += acceleration_x * elapsed_time_ms;
+
+        if self.acceleration_x < 0 {
             self.velocity_x = self.velocity_x.max(-MAX_SPEED_X);
-        } else if self.acceleration_x > 0.0 {
+        } else if self.acceleration_x > 0 {
             self.velocity_x = self.velocity_x.min(MAX_SPEED_X);
-        } else if self.on_ground() {
-            self.velocity_x *= SLOWDOWN_FACTOR;
+        } else if self.on_ground {
+            self.velocity_x = if self.velocity_x > 0.0 {
+                (self.velocity_x - FRICTION * elapsed_time_ms).max(0.0)
+                // (0.0).max(self.velocity_x - FRICTION * elapsed_time_ms)
+            } else {
+                (self.velocity_x + FRICTION * elapsed_time_ms).min(0.0)
+            };
         }
 
         // calculate delta
@@ -154,7 +179,6 @@ impl Player {
             // right side collisions
             let info = self.get_collision_info(self.right_collision(delta), map);
             if info.collided {
-                println!("moving right col {}", info.col);
                 self.x = info.col * TILE_SIZE as i32 - self.collision_x.right();
                 self.velocity_x = 0.0;
             } else {
@@ -187,9 +211,13 @@ impl Player {
 
     fn update_y(&mut self, elapsed_time_ms: f32, map: &Map) {
         // Update velocity
-        if !self.jump.active() {
-            self.velocity_y = (self.velocity_y + GRAVITY * elapsed_time_ms).min(MAX_SPEED_Y);
-        }
+        let gravity = if self.jump_active && self.velocity_y < 0.0 {
+            JUMP_GRAVITY
+        } else {
+            GRAVITY
+        };
+
+        self.velocity_y = (self.velocity_y + gravity * elapsed_time_ms).min(MAX_SPEED_Y);
 
         //calculate_delta
         let delta = (self.velocity_y * elapsed_time_ms).round() as i32;
@@ -241,8 +269,10 @@ impl Player {
     }
 
     fn get_sprite_state(&self) -> SpriteState {
-        let motion_type = if self.on_ground() {
-            if self.acceleration_x == 0.0 {
+        let motion_type = if self.interacting {
+            MotionType::Interacting
+        } else if self.on_ground {
+            if self.acceleration_x == 0 {
                 MotionType::Standing
             } else {
                 MotionType::Walking
@@ -308,6 +338,7 @@ impl Player {
 
         let frame = match sprite_state.motion_type() {
             MotionType::Walking => WALK_FRAME,
+            MotionType::Interacting => BACK_FRAME,
             MotionType::Standing => STAND_FRAME,
             MotionType::Jumping => JUMP_FRAME,
             MotionType::Falling => FALL_FRAME,
@@ -337,10 +368,9 @@ impl Player {
             }
             _ => {
                 let source_x = if sprite_state.vertical_facing() == VerticalFacing::Down {
-                    if sprite_state.motion_type() == MotionType::Standing {
-                        BACK_FRAME * tile_size
-                    } else {
-                        DOWN_FRAME * tile_size
+                    match sprite_state.motion_type() {
+                        MotionType::Jumping | MotionType::Falling => DOWN_FRAME * tile_size,
+                        _ => source_x,
                     }
                 } else {
                     source_x

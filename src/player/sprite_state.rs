@@ -1,12 +1,14 @@
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd)]
 pub enum MotionType {
     Standing,
+    Interacting,
     Walking,
     Jumping,
     Falling,
 }
 
-pub const MOTION_TYPES: [MotionType; 4] = [MotionType::Standing,
+pub const MOTION_TYPES: [MotionType; 5] = [MotionType::Standing,
+                                           MotionType::Interacting,
                                            MotionType::Walking,
                                            MotionType::Jumping,
                                            MotionType::Falling];
