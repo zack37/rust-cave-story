@@ -15,6 +15,7 @@ use time::Duration;
 
 pub struct Map {
     tiles: Vec<Vec<Tile>>,
+    background_tiles: Vec<Vec<Tile>>,
     backdrop: Option<Box<Backdrop>>,
 }
 
@@ -22,6 +23,7 @@ impl Map {
     pub fn new() -> Map {
         Map {
             tiles: vec![vec![]],
+            background_tiles: vec![vec![]],
             backdrop: None,
         }
     }
@@ -37,6 +39,7 @@ impl Map {
         let blank_tile = Tile::new();
         let blank_row: Vec<Tile> = repeat(blank_tile).take(num_cols).collect();
         map.tiles = repeat(blank_row.clone()).take(num_rows).collect();
+        map.background_tiles = repeat(blank_row.clone()).take(num_rows).collect();
 
         let file_path = "content/PrtCave.bmp";
         let sprite = Rc::new(RefCell::new(Box::new(StaticSprite::new(graphics,
@@ -46,6 +49,29 @@ impl Map {
                                                                      TILE_SIZE,
                                                                      TILE_SIZE)) as
                                           Box<Sprite>));
+        let chain_top = Rc::new(RefCell::new(Box::new(StaticSprite::new(graphics,
+                                                                        file_path,
+                                                                        11 * TILE_SIZE as i32,
+                                                                        2 * TILE_SIZE as i32,
+                                                                        TILE_SIZE,
+                                                                        TILE_SIZE)) as
+                                             Box<Sprite>));
+        let chain_middle = Rc::new(RefCell::new(Box::new(StaticSprite::new(graphics,
+                                                                           file_path,
+                                                                           12 *
+                                                                           TILE_SIZE as i32,
+                                                                           2 * TILE_SIZE as i32,
+                                                                           TILE_SIZE,
+                                                                           TILE_SIZE)) as
+                                                Box<Sprite>));
+        let chain_bottom = Rc::new(RefCell::new(Box::new(StaticSprite::new(graphics,
+                                                                           file_path,
+                                                                           13 *
+                                                                           TILE_SIZE as i32,
+                                                                           2 * TILE_SIZE as i32,
+                                                                           TILE_SIZE,
+                                                                           TILE_SIZE)) as
+                                                Box<Sprite>));
         let wall_tile = Tile::from_sprite(sprite, TileType::Wall);
 
         // floor
@@ -65,6 +91,14 @@ impl Map {
         map.tiles[num_rows - 3][4] = wall_tile.clone();
         map.tiles[num_rows - 4][3] = wall_tile.clone();
         map.tiles[num_rows - 5][2] = wall_tile.clone();
+
+        let chain_top_tile = Tile::from_sprite(chain_top, TileType::Air);
+        let chain_middle_tile = Tile::from_sprite(chain_middle, TileType::Air);
+        let chain_bottom_tile = Tile::from_sprite(chain_bottom, TileType::Air);
+
+        map.background_tiles[num_rows - 4][2] = chain_top_tile.clone();
+        map.background_tiles[num_rows - 3][2] = chain_middle_tile.clone();
+        map.background_tiles[num_rows - 2][2] = chain_bottom_tile.clone();
 
         map
     }
@@ -115,6 +149,16 @@ impl Map {
     pub fn draw_background(&mut self, graphics: &mut Graphics) {
         if let Some(ref mut backdrop) = self.backdrop {
             backdrop.draw(graphics);
+        }
+
+        for row in 0..self.background_tiles.len() {
+            for col in 0..self.background_tiles.len() {
+                if let Some(sprite) = self.background_tiles[row][col].sprite() {
+                    let x = col as u32 * TILE_SIZE;
+                    let y = row as u32 * TILE_SIZE;
+                    sprite.borrow_mut().draw(graphics, x as i32, y as i32);
+                }
+            }
         }
     }
 }

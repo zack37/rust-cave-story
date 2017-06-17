@@ -11,8 +11,8 @@ use time::{Duration, PreciseTime};
 const FPS: i64 = 60;
 pub const TILE_SIZE: u32 = 32;
 
-pub const SCREEN_WIDTH: u32 = 1280;
-pub const SCREEN_HEIGHT: u32 = 960;
+pub const SCREEN_WIDTH: u32 = 640;
+pub const SCREEN_HEIGHT: u32 = 480;
 
 pub struct Game {}
 
