@@ -7,12 +7,15 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::thread::sleep;
 use time::{Duration, PreciseTime};
+use units::{AsGame, Fps, Tile};
 
-const FPS: i64 = 60;
+const FPS: Fps = 120;
 pub const TILE_SIZE: u32 = 32;
 
-pub const SCREEN_WIDTH: u32 = 640;
-pub const SCREEN_HEIGHT: u32 = 480;
+pub const SCREEN_WIDTH: Tile = Tile(20);
+pub const SCREEN_HEIGHT: Tile = Tile(15);
+// pub const SCREEN_WIDTH: u32 = 20 * TILE_SIZE;
+// pub const SCREEN_HEIGHT: u32 = 15 * TILE_SIZE;
 
 pub struct Game {}
 
@@ -30,7 +33,7 @@ impl Game {
         let mut graphics: &mut Graphics = &mut Graphics::new(sdl_context)
                                                    .expect("Failed to create graphics");
         let mut input = Input::new();
-        let (width, height) = (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+        let (width, height) = ((SCREEN_WIDTH / Tile(2)).to_game(), (SCREEN_HEIGHT / Tile(2)).to_game());
         let mut player = Player::new(graphics, width / 2, height / 2);
         let mut map = Map::create_test_map(graphics);
 
@@ -81,7 +84,7 @@ impl Game {
     }
 
     fn frame_limit(&self, elapsed_time: Duration) {
-        let ms_per_frame = Duration::milliseconds(1000 / FPS);
+        let ms_per_frame = Duration::milliseconds(1000 / FPS as i64);
         let sleep_duration = ms_per_frame - elapsed_time;
 
         if let Ok(sleep_duration) = sleep_duration.to_std() {

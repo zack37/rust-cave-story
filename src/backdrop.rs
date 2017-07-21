@@ -1,8 +1,8 @@
-use game::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use game::{SCREEN_HEIGHT, SCREEN_WIDTH, TILE_SIZE};
 use graphics::Graphics;
 use sdl2::rect::Rect;
 
-const BACKGROUND_SIZE: u32 = 128;
+const BACKGROUND_SIZE: u32 = TILE_SIZE * 4;
 
 pub trait Backdrop {
     fn draw(&self, graphics: &mut Graphics);

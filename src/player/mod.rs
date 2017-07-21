@@ -13,20 +13,21 @@ use self::sprite_state::*;
 use sprite::{Sprite, AnimatedSprite};
 use std::collections::HashMap;
 use time::Duration;
+use units;
 
 // Walk Motion
-const WALKING_ACCELERATION: f32 = 0.00083007812; // pixels/ms/ms
-const MAX_SPEED_X: f32 = 0.15859375; // pixels/ms
-const FRICTION: f32 = 0.00049804687;
+const WALKING_ACCELERATION: units::Acceleration = units::Acceleration(0.00083007812); // pixels/ms/ms
+const MAX_SPEED_X: units::Acceleration = units::Acceleration(0.15859375); // pixels/ms
+const FRICTION: units::Acceleration = units::Acceleration(0.00049804687);
 
 // Fall Motion
 const GRAVITY: f32 = 0.00078125;
 const MAX_SPEED_Y: f32 = 0.2998046875; // pixels/ms
 
 // Jump motion
-const JUMP_SPEED: f32 = 0.25; // pixels/ms
-const AIR_ACCELERATION: f32 = 0.0003125; // pixels/ms/ms
-const JUMP_GRAVITY: f32 = 0.0003125; // pixels/ms/ms
+const JUMP_SPEED: units::Velocity = units::Velocity(0.25); // pixels/ms
+const AIR_ACCELERATION: units::Acceleration = units::Acceleration(0.0003125); // pixels/ms/ms
+const JUMP_GRAVITY: units::Acceleration = units::Acceleration(0.0003125); // pixels/ms/ms
 
 // Sprite Frames
 const CHARACTER_FRAME: i32 = 0;
@@ -48,11 +49,11 @@ const NUM_WALK_FRAME: u32 = 3;
 
 pub struct Player {
     sprites: HashMap<SpriteState, Box<Sprite>>,
-    x: i32,
-    y: i32,
-    acceleration_x: i8,
-    velocity_x: f32,
-    velocity_y: f32,
+    x: units::Game,
+    y: units::Game,
+    acceleration_x: units::Acceleration,
+    velocity_x: units::Velocity,
+    velocity_y: units::Velocity,
     horizontal_facing: HorizontalFacing,
     vertical_facing: VerticalFacing,
     jump_active: bool,
@@ -63,14 +64,14 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(graphics: &mut Graphics, x: i32, y: i32) -> Player {
+    pub fn new(graphics: &mut Graphics, x: units::Game, y: units::Game) -> Player {
         let player = Player {
             sprites: HashMap::new(),
             x,
             y,
-            acceleration_x: 0,
-            velocity_x: 0.0,
-            velocity_y: 0.0,
+            acceleration_x: units::Acceleration(0.0),
+            velocity_x: units::Velocity(0.0),
+            velocity_y: units::Velocity(0.0),
             horizontal_facing: HorizontalFacing::Left,
             vertical_facing: VerticalFacing::Horizontal,
             jump_active: false,
@@ -83,19 +84,19 @@ impl Player {
     }
 
     pub fn start_moving_left(&mut self) {
-        self.acceleration_x = -1;
+        self.acceleration_x = units::Acceleration(-1.0);
         self.horizontal_facing = HorizontalFacing::Left;
         self.interacting = false;
     }
 
     pub fn start_moving_right(&mut self) {
-        self.acceleration_x = 1;
+        self.acceleration_x = units::Acceleration(1.0);
         self.horizontal_facing = HorizontalFacing::Right;
         self.interacting = false;
     }
 
     pub fn stop_moving(&mut self) {
-        self.acceleration_x = 0;
+        self.acceleration_x = units::Acceleration(0.0);
     }
 
     pub fn look_up(&mut self) {
@@ -160,24 +161,25 @@ impl Player {
         };
         self.velocity_x += acceleration_x * elapsed_time_ms;
 
-        if self.acceleration_x < 0 {
-            self.velocity_x = self.velocity_x.max(-MAX_SPEED_X);
+        self.velocity_x = if self.acceleration_x < 0 {
+            self.velocity_x.max(-MAX_SPEED_X)
         } else if self.acceleration_x > 0 {
-            self.velocity_x = self.velocity_x.min(MAX_SPEED_X);
+            self.velocity_x.min(MAX_SPEED_X)
         } else if self.on_ground {
-            self.velocity_x = if self.velocity_x > 0.0 {
+            if self.velocity_x > 0.0 {
                 (self.velocity_x - FRICTION * elapsed_time_ms).max(0.0)
-                // (0.0).max(self.velocity_x - FRICTION * elapsed_time_ms)
             } else {
                 (self.velocity_x + FRICTION * elapsed_time_ms).min(0.0)
-            };
-        }
+            }
+        } else {
+            self.velocity_x
+        };
 
         // calculate delta
         let delta = (self.velocity_x * elapsed_time_ms).round() as i32;
 
         // check collision in direction of delta
-        if delta > 0 {
+        if delta > units::Game(0.0) {
             // moving right
             // right side collisions
             let info = self.get_collision_info(self.right_collision(delta), map);
